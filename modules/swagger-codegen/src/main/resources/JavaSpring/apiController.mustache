@@ -23,10 +23,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 {{/async}}
 {{/jdk8-no-delegate}}
-{{^useSpringCloudClient}}
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-{{/useSpringCloudClient}}
 {{#useBeanValidation}}
 import javax.validation.constraints.*;
 import javax.validation.Valid;
@@ -35,12 +31,6 @@ import javax.validation.Valid;
 @Controller
 {{#operations}}
 public class {{classname}}Controller implements {{classname}} {
-    private final ObjectMapper objectMapper;
-
-    public {{classname}}Controller(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
-
 {{#isDelegate}}
     private final {{classname}}Delegate delegate;
 
@@ -52,10 +42,9 @@ public class {{classname}}Controller implements {{classname}} {
 {{/isDelegate}}
 {{^jdk8-no-delegate}}
 {{#operation}}
-    public {{#async}}Callable<{{/async}}ResponseEntity<{{>returnTypes}}>{{#async}}>{{/async}} {{operationId}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>headerParams}}{{>bodyParams}}{{>formParams}},
-        {{/allParams}}@RequestHeader("Accept") String accept){{#examples}}{{#-first}} throws IOException{{/-first}}{{/examples}} {
+    public {{#async}}Callable<{{/async}}ResponseEntity<{{>returnTypes}}>{{#async}}>{{/async}} {{operationId}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>headerParams}}{{>bodyParams}}{{>formParams}}{{#hasMore}},
+        {{/hasMore}}{{/allParams}} {
         // do some magic!
-{{#useSpringCloudClient}}
         {{^isDelegate}}
         {{^async}}
         return new ResponseEntity<{{>returnTypes}}>(HttpStatus.OK);
@@ -72,32 +61,6 @@ public class {{classname}}Controller implements {{classname}} {
         {{#isDelegate}}
         return delegate.{{operationId}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
         {{/isDelegate}}
-{{/useSpringCloudClient}}
-{{^useSpringCloudClient}}
-        {{^isDelegate}}
-        {{^async}}
-        {{#examples}}
-
-        if (accept != null && accept.contains("{{{contentType}}}")) {
-            return new ResponseEntity<{{>returnTypes}}>(objectMapper.readValue("{{#lambdaRemoveLineBreak}}{{#lambdaEscapeDoubleQuote}}{{{example}}}{{/lambdaEscapeDoubleQuote}}{{/lambdaRemoveLineBreak}}", {{>exampleReturnTypes}}.class), HttpStatus.OK);
-        }
-
-        {{/examples}}
-        return new ResponseEntity<{{>returnTypes}}>(HttpStatus.OK);
-        {{/async}}
-        {{#async}}
-        return new Callable<ResponseEntity<{{>returnTypes}}>>() {
-            @Override
-            public ResponseEntity<{{>returnTypes}}> call() throws Exception {
-                return new ResponseEntity<{{>returnTypes}}>(HttpStatus.OK);
-            }
-        };
-        {{/async}}
-        {{/isDelegate}}
-        {{#isDelegate}}
-        return delegate.{{operationId}}({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
-        {{/isDelegate}}
-{{/useSpringCloudClient}}
     }
 
 {{/operation}}
